@@ -2,11 +2,11 @@ package eciesgo
 
 import (
 	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/rand"
 	"fmt"
 	"math/big"
+
+	"golang.org/x/crypto/chacha20poly1305"
 )
 
 // Encrypt encrypts a passed message with a receiver public key, returns ciphertext or encryption error
@@ -27,23 +27,18 @@ func Encrypt(pubkey *PublicKey, msg []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// AES encryption
-	block, err := aes.NewCipher(ss)
-	if err != nil {
-		return nil, fmt.Errorf("cannot create new aes block: %w", err)
-	}
-
-	nonce := make([]byte, 16)
+	nonce := make([]byte, 24)
 	if _, err := rand.Read(nonce); err != nil {
 		return nil, fmt.Errorf("cannot read random bytes for nonce: %w", err)
 	}
 
-	ct.Write(nonce)
-
-	aesgcm, err := cipher.NewGCMWithNonceSize(block, 16)
+	// CHACHAA20 encryption
+	aesgcm, err := chacha20poly1305.NewX(ss)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create aes gcm: %w", err)
+		return nil, fmt.Errorf("cannot create new aes block: %w", err)
 	}
+
+	ct.Write(nonce)
 
 	ciphertext := aesgcm.Seal(nil, nonce, msg, nil)
 
@@ -79,20 +74,16 @@ func Decrypt(privkey *PrivateKey, msg []byte) ([]byte, error) {
 	}
 
 	// AES decryption part
-	nonce := msg[:16]
-	tag := msg[16:32]
+	nonce := msg[:24]
+	tag := msg[24:48]
 
 	// Create Golang-accepted ciphertext
-	ciphertext := bytes.Join([][]byte{msg[32:], tag}, nil)
+	ciphertext := bytes.Join([][]byte{msg[48:], tag}, nil)
 
-	block, err := aes.NewCipher(ss)
+	// CHACHAA20 encryption
+	gcm, err := chacha20poly1305.NewX(ss)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create new aes block: %w", err)
-	}
-
-	gcm, err := cipher.NewGCMWithNonceSize(block, 16)
-	if err != nil {
-		return nil, fmt.Errorf("cannot create gcm cipher: %w", err)
 	}
 
 	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
