@@ -78,7 +78,7 @@ func (k *PrivateKey) Encapsulate(pub *PublicKey) ([]byte, error) {
 	}
 
 	var secret bytes.Buffer
-	secret.Write(k.PublicKey.Bytes(false))
+	secret.Write(k.PublicKey.Bytes())
 
 	sx, sy := pub.Curve.ScalarMult(pub.X, pub.Y, k.D.Bytes())
 	secret.Write([]byte{0x04})

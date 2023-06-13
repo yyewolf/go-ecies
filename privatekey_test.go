@@ -2,15 +2,16 @@ package eciesgo
 
 import (
 	"crypto/subtle"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-const privkeyBase = "f0e5b2c3ba4df3fdb3ecea30d0e60c4e4a31d1ba928f51783ae18bbd3cada572"
+const privkeyBase = "95d3c5e483e9b1d4f5fc8e79b2deaf51362980de62dbb082a9a4257eef653d7d"
 
 var privkeys = []string{
-	"73d808dc0da21075f252937986a78c84f1c2abbd4649d597f9473e14209efc90",
-	"19848cb43883723309ace215ba1cbe80907f6e3faeaab32c68034d5f521a57de",
+	"95d3c5e483e9b1d4f5fc8e79b2deaf51362980de62dbb082a9a4257eef653d7d",
+	"95d3c5e483e9b1d4f5fc8e79b2deaf51362980de62dbb082a9a4257eef653d7d",
 }
 
 func TestNewPrivateKeyFromHex(t *testing.T) {

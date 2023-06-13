@@ -19,7 +19,7 @@ func Encrypt(pubkey *PublicKey, msg []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	ct.Write(ek.PublicKey.Bytes(false))
+	ct.Write(ek.PublicKey.Bytes())
 
 	// Derive shared secret
 	ss, err := ek.Encapsulate(pubkey)
@@ -58,19 +58,19 @@ func Encrypt(pubkey *PublicKey, msg []byte) ([]byte, error) {
 // Decrypt decrypts a passed message with a receiver private key, returns plaintext or decryption error
 func Decrypt(privkey *PrivateKey, msg []byte) ([]byte, error) {
 	// Message cannot be less than length of public key (65) + nonce (16) + tag (16)
-	if len(msg) <= (1 + 32 + 32 + 16 + 16) {
+	if len(msg) <= (1 + 64 + 64 + 16 + 16) {
 		return nil, fmt.Errorf("invalid length of message")
 	}
 
 	// Ephemeral sender public key
 	ethPubkey := &PublicKey{
 		Curve: getCurve(),
-		X:     new(big.Int).SetBytes(msg[1:33]),
-		Y:     new(big.Int).SetBytes(msg[33:65]),
+		X:     new(big.Int).SetBytes(msg[1:67]),
+		Y:     new(big.Int).SetBytes(msg[67:133]),
 	}
 
 	// Shift message
-	msg = msg[65:]
+	msg = msg[133:]
 
 	// Derive shared secret
 	ss, err := ethPubkey.Decapsulate(privkey)

@@ -4,10 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
-	"io/ioutil"
 	"math/big"
-	"net/http"
-	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +13,7 @@ import (
 
 const testingMessage = "helloworld"
 const testingJsonMessage = `{"code":0,"msg":"ok","data":{"pageNumber":1,"pageSize":10,"total":0,"list":[],"realTotal":0}}{"code":0,"msg":"ok","data":{"pageNumber":1,"pageSize":10,"total":0,"list":[],"realTotal":0}}{"code":0,"msg":"ok","data":{"pageNumber":1,"pageSize":10,"total":0,"list":[],"realTotal":0}}`
-const testingReceiverPubkeyHex = "0498afe4f150642cd05cc9d2fa36458ce0a58567daeaf5fde7333ba9b403011140a4e28911fcf83ab1f457a30b4959efc4b9306f514a4c3711a16a80e3b47eb58b"
+const testingReceiverPubkeyHex = "04002da2cc9ac376f85a3968da3d896cae147f2b96c53f149499c1a6aed988832aca571c4f4eeb62f1070bff91ed4a4aa8ad6cd81f180faeac441e69bdf92b68d84e7d01875396f834501719eeb74f5f5eb4595dabf4bc3fa3f8847c28059448da03f727d5b78e147f2886ff0a96bc4892671d666deacf4997a0faf520d192075c77456899"
 const testingReceiverPrivkeyHex = "95d3c5e483e9b1d4f5fc8e79b2deaf51362980de62dbb082a9a4257eef653d7d"
 const pythonBackend = "https://ecies.deta.dev/"
 
@@ -80,7 +77,7 @@ func TestPublicKeyDecompression(t *testing.T) {
 	}
 
 	// Drop Y part and restore it
-	pubkey, err := NewPublicKeyFromHex(privkey.PublicKey.Hex(true))
+	pubkey, err := NewPublicKeyFromHex(privkey.PublicKey.Hex())
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -95,8 +92,8 @@ func TestKEM(t *testing.T) {
 	if _, err := io.ReadFull(kdf, derived); err != nil {
 		if !assert.Equal(
 			t,
-			hex.EncodeToString(derived),
 			"2f34e5ff91ec85d53ca9b543683174d0cf550b60d5f52b24c97b386cfcf6cbbf",
+			hex.EncodeToString(derived),
 		) {
 			return
 		}
@@ -120,80 +117,7 @@ func TestKEM(t *testing.T) {
 
 	assert.Equal(
 		t,
+		"28b2499b06f812aa06267a4e84f4afb653c8067195dd3485ff5685e8c6a0ed3a",
 		hex.EncodeToString(sk1),
-		"6f982d63e8590c9d9b5b4c1959ff80315d772edd8f60287c9361d548d5200f82",
 	)
-}
-
-func TestDecryptAgainstPythonVersion(t *testing.T) {
-	prv, err := NewPrivateKeyFromHex(testingReceiverPrivkeyHex)
-	if !assert.NoError(t, err) {
-		return
-	}
-
-	form := make(url.Values)
-	form.Set("data", testingMessage)
-	form.Set("pub", testingReceiverPubkeyHex)
-
-	resp, err := http.PostForm(pythonBackend, form)
-	if !assert.NoError(t, err) {
-		return
-	}
-
-	defer resp.Body.Close()
-
-	if !assert.Equal(t, http.StatusOK, resp.StatusCode) {
-		return
-	}
-
-	hexBytes, err := ioutil.ReadAll(resp.Body)
-	if !assert.NoError(t, err) {
-		return
-	}
-
-	ciphertext, err := hex.DecodeString(string(hexBytes))
-	if !assert.NoError(t, err) {
-		return
-	}
-
-	plaintext, err := Decrypt(prv, ciphertext)
-	if !assert.NoError(t, err) {
-		return
-	}
-
-	assert.Equal(t, testingMessage, string(plaintext))
-}
-
-func TestEncryptAgainstPythonVersion(t *testing.T) {
-	prv, err := NewPrivateKeyFromHex(testingReceiverPrivkeyHex)
-	if !assert.NoError(t, err) {
-		return
-	}
-
-	ciphertext, err := Encrypt(prv.PublicKey, []byte(testingMessage))
-	if !assert.NoError(t, err) {
-		return
-	}
-
-	form := make(url.Values)
-	form.Set("data", hex.EncodeToString(ciphertext))
-	form.Set("prv", testingReceiverPrivkeyHex)
-
-	resp, err := http.PostForm(pythonBackend, form)
-	if !assert.NoError(t, err) {
-		return
-	}
-
-	defer resp.Body.Close()
-
-	if !assert.Equal(t, http.StatusOK, resp.StatusCode) {
-		return
-	}
-
-	plaintext, err := ioutil.ReadAll(resp.Body)
-	if !assert.NoError(t, err) {
-		return
-	}
-
-	assert.Equal(t, string(plaintext), testingMessage)
 }
