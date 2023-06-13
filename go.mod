@@ -1,4 +1,4 @@
-module github.com/ecies/go/v2
+module github.com/yyewolf/go-ecies/v2
 
 require (
 	github.com/kr/pretty v0.3.1 // indirect
